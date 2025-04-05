@@ -9,8 +9,8 @@ MAX_MSG_LENGTH = 200
 # 🔐 Usuários válidos
 USUARIOS = {
     "joao": "1234",
-    "fabio": "1234",
-    "jack": "1234"
+    "peralta": "1234",
+    "fabio": "1234"
 }
 
 # Configuração do logger para histórico
@@ -64,7 +64,7 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
             nicknames[client_socket.fileno()] = nickname
 
         log(f"{nickname} ({addr}) conectado.")
-        client_socket.send("Conectado ao servidor de leilão.\nComandos: item <nome>, lance <valor>, encerrar, sair".encode())
+        client_socket.send(f"{nickname} conectado ao servidor de leilão.\nComandos: item <nome>, lance <valor>, encerrar, sair".encode())
 
         while True:
             message = client_socket.recv(1024).decode().strip()
@@ -207,3 +207,4 @@ def start_server(host='0.0.0.0', port=12345):
 
 if __name__ == "__main__":
     start_server()
+    
