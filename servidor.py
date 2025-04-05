@@ -6,6 +6,13 @@ import logging
 MAX_CLIENTS = 10
 MAX_MSG_LENGTH = 200
 
+# 🔐 Usuários válidos
+USUARIOS = {
+    "joao": "1234",
+    "fabio": "1234",
+    "jack": "1234"
+}
+
 # Configuração do logger para histórico
 logging.basicConfig(
     filename="historico_leiloes.txt",
@@ -31,12 +38,27 @@ def broadcast(all_clients, message, exclude=None):
                 continue
 
 
+def autenticar_usuario(client_socket):
+    client_socket.send("Usuário: ".encode())
+    usuario = client_socket.recv(1024).decode().strip()
+
+    client_socket.send("Senha: ".encode())
+    senha = client_socket.recv(1024).decode().strip()
+
+    if usuario not in USUARIOS or USUARIOS[usuario] != senha:
+        client_socket.send("❌ Credenciais inválidas. Conexão encerrada.".encode())
+        client_socket.close()
+        return None
+
+    client_socket.send("✅ Autenticado com sucesso.\n".encode())
+    return usuario
+
+
 def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
     try:
-        client_socket.send("Digite seu apelido: ".encode())
-        nickname = client_socket.recv(1024).decode().strip()
-        if not nickname:
-            nickname = f"{addr[0]}:{addr[1]}"
+        nickname = autenticar_usuario(client_socket)
+        if nickname is None:
+            return
 
         with lock:
             nicknames[client_socket.fileno()] = nickname
@@ -62,7 +84,7 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
                 with lock:
                     leilao['item'] = item
                     leilao['lance'] = {'valor': 0, 'autor': None}
-                    del leilao['lances'][:]  # limpa lista de lances
+                    del leilao['lances'][:]
                     leilao['ativo'] = True
                 log(f"Novo item cadastrado para leilão: {item}")
                 broadcast(all_clients, f"🔨 Leilão iniciado para o item: {item}!", client_socket)
@@ -99,15 +121,14 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
                     item = leilao['item']
                     vencedor = leilao['lance']['autor']
                     valor = leilao['lance']['valor']
-                    lances = list(leilao['lances'])  # cópia para registrar
+                    lances = list(leilao['lances'])
                     leilao['ativo'] = False
-                    del leilao['lances'][:]  # limpa para o próximo
+                    del leilao['lances'][:]
 
                 resultado = f"🏁 Leilão encerrado para '{item}'! Vencedor: {vencedor} com R$ {valor}" if vencedor else "❌ Leilão encerrado sem lances."
                 log(resultado)
                 broadcast(all_clients, resultado, None)
 
-                # Log no histórico
                 historico_logger.info(f"Leilão encerrado: {item}")
                 if vencedor:
                     historico_logger.info(f"Vencedor: {vencedor} | Valor final: R$ {valor}")
@@ -124,7 +145,6 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
                 historico_logger.info("-" * 40)
                 continue
 
-            # Mensagem normal
             log(f"{nickname}: {message}")
             broadcast(all_clients, f"{nickname}: {message}", client_socket)
 
