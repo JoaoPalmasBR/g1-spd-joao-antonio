@@ -1,13 +1,26 @@
 import socket
 import multiprocessing
 import datetime
+import logging
 
 MAX_CLIENTS = 10
-MAX_MSG_LENGTH = 200  # limite de caracteres por mensagem
+MAX_MSG_LENGTH = 200
+
+# Configuração do logger para histórico
+logging.basicConfig(
+    filename="historico_leiloes.txt",
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    encoding="utf-8"
+)
+historico_logger = logging.getLogger("leilao")
+
 
 def log(message):
     timestamp = datetime.datetime.now().strftime("[%H:%M:%S]")
     print(f"{timestamp} {message}")
+
 
 def broadcast(all_clients, message, exclude=None):
     for c in all_clients:
@@ -16,6 +29,7 @@ def broadcast(all_clients, message, exclude=None):
                 c.send(message.encode())
             except:
                 continue
+
 
 def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
     try:
@@ -48,6 +62,7 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
                 with lock:
                     leilao['item'] = item
                     leilao['lance'] = {'valor': 0, 'autor': None}
+                    del leilao['lances'][:]  # limpa lista de lances
                     leilao['ativo'] = True
                 log(f"Novo item cadastrado para leilão: {item}")
                 broadcast(all_clients, f"🔨 Leilão iniciado para o item: {item}!", client_socket)
@@ -70,6 +85,7 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
                         continue
 
                     leilao['lance'] = {'valor': valor, 'autor': nickname}
+                    leilao['lances'].append((valor, nickname))
                     log(f"Lance de R$ {valor} por {nickname}")
                     broadcast(all_clients, f"📣 Novo lance de {nickname}: R$ {valor}", client_socket)
                 continue
@@ -79,16 +95,36 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
                     if not leilao.get('ativo', False):
                         client_socket.send("⚠️ Nenhum leilão em andamento.".encode())
                         continue
+
+                    item = leilao['item']
                     vencedor = leilao['lance']['autor']
                     valor = leilao['lance']['valor']
-                    item = leilao['item']
+                    lances = list(leilao['lances'])  # cópia para registrar
                     leilao['ativo'] = False
+                    del leilao['lances'][:]  # limpa para o próximo
+
                 resultado = f"🏁 Leilão encerrado para '{item}'! Vencedor: {vencedor} com R$ {valor}" if vencedor else "❌ Leilão encerrado sem lances."
                 log(resultado)
                 broadcast(all_clients, resultado, None)
+
+                # Log no histórico
+                historico_logger.info(f"Leilão encerrado: {item}")
+                if vencedor:
+                    historico_logger.info(f"Vencedor: {vencedor} | Valor final: R$ {valor}")
+                else:
+                    historico_logger.info("Nenhum lance registrado.")
+
+                if lances:
+                    historico_logger.info("Lances:")
+                    for v, autor in lances:
+                        historico_logger.info(f"  {autor} -> R$ {v}")
+                else:
+                    historico_logger.info("Nenhum lance foi feito.")
+
+                historico_logger.info("-" * 40)
                 continue
 
-            # Mensagens normais
+            # Mensagem normal
             log(f"{nickname}: {message}")
             broadcast(all_clients, f"{nickname}: {message}", client_socket)
 
@@ -102,12 +138,13 @@ def process_request(client_socket, addr, all_clients, nicknames, lock, leilao):
             nicknames.pop(client_socket.fileno(), None)
         client_socket.close()
 
+
 def start_server(host='0.0.0.0', port=12345):
     try:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind((host, port))
     except OSError as e:
-        if e.errno == 10048:  # Porta já está em uso no Windows
+        if e.errno == 10048:
             log(f"❌ A porta {port} já está em uso. Tente usar outra porta ou finalize o processo que está ocupando ela.")
         else:
             log(f"Erro ao iniciar o servidor: {e}")
@@ -124,6 +161,7 @@ def start_server(host='0.0.0.0', port=12345):
     leilao = manager.dict()
     leilao['item'] = None
     leilao['lance'] = {'valor': 0, 'autor': None}
+    leilao['lances'] = manager.list()
     leilao['ativo'] = False
 
     while True:
@@ -144,8 +182,8 @@ def start_server(host='0.0.0.0', port=12345):
             target=process_request,
             args=(client_socket, addr, all_clients, nicknames, lock, leilao)
         )
-        client_process.daemon = True
         client_process.start()
+
 
 if __name__ == "__main__":
     start_server()
