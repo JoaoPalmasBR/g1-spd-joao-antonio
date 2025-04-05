@@ -20,6 +20,7 @@ def chat_interface(stdscr, client_socket):
     stdscr.clear()
     height, width = stdscr.getmaxyx()
 
+    # Cria janela para bate-papo
     chat_win = curses.newwin(height - 3, width, 0, 0)
     input_win = curses.newwin(3, width, height - 3, 0)
 
@@ -28,6 +29,7 @@ def chat_interface(stdscr, client_socket):
 
     lock = threading.Lock()
 
+    # Thread para receber mensagens
     recv_thread = threading.Thread(target=receive_messages, args=(client_socket, chat_win, lock))
     recv_thread.daemon = True
     recv_thread.start()
@@ -56,28 +58,19 @@ def start_client(server_host='172.29.28.32', server_port=12345):
         print("Erro: O servidor não está disponível.")
         return
 
-    # Login: Usuário
-    server_msg = client.recv(1024).decode()
-    print(server_msg, end='')
-    usuario = input()
-    client.send(usuario.encode())
-
-    # Login: Senha
-    server_msg = client.recv(1024).decode()
-    print(server_msg, end='')
-    senha = input()
-    client.send(senha.encode())
-
-    # Resposta do servidor após autenticação
-    resposta = client.recv(1024).decode()
-    print(resposta)
-    if "❌" in resposta:
+    initial_msg = client.recv(1024).decode()
+    if "Servidor cheio" in initial_msg:
+        print(f"⚠️ {initial_msg}")
         client.close()
         return
 
-    # Após login bem-sucedido, abrir interface
-    print("abrindo interface")
-    time.sleep(1)
+    print(initial_msg)
+    
+    # Lê apelido antes de entrar na interface
+    nickname = input("")
+    client.send(nickname.encode())
+
+    time.sleep(0.1)  # Dá tempo pro servidor processar o apelido antes da interface
     curses.wrapper(chat_interface, client)
 
 if __name__ == "__main__":
