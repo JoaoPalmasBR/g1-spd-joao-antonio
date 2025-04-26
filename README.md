@@ -1,80 +1,105 @@
+# 💸 Plataforma de Leilões em Rede (Distribuído via Docker)
 
-# Sistem de  Leilões distribuiods
-Sistema distribuído de leilões:
-- em tempo real 
-- utilizando: **sockets TCP**, **threads**, **multiprocessamento**
-- uma interface interativa em **terminal** com `curses`.
+Sistema distribuído de leilões em tempo real utilizando **sockets TCP**, **threads**, **multiprocessamento** e **Docker**. Agora com suporte a **volume nomeado** para histórico, e **cópia manual** para pasta local.
 
-## Integrantes
-- João Antonio
-- Emmanuel Peralta
+---
 
-## Funcionalidades
+## ✅ Funcionalidades
 
-- Vários participantes simultâneos
-- Autenticação de usuários com usuario e senha (predefinidos)
-- Interface em modo texto (terminal) com atualização de mensagens em tempo real
-- Registro de histórico completo dos leilões (`historico_leiloes.txt`)
-- Validação de lances (nao deixa ser menor que um anterior)
-- Notificações em tempo real de novos lances e vencedor
+- Vários participantes simultâneos (via TCP)
+- Autenticação de usuários com login e senha
+- Interface interativa em terminal (curses)
+- Histórico de leilões salvo em volume Docker
+- Cópia manual do histórico para o PC local
+- Comunicação entre containers por nome de serviço
 
+---
 
-## Requisitos
+## 📦 Requisitos
 
-- Python
-- `windows-curses` (apenas no Windows)
+- Docker e Docker Compose instalados
+- Python (apenas para desenvolvimento, não para execução Docker)
+- Em Windows: instalar `windows-curses` se quiser rodar o cliente manualmente
 
-## Instalação
+---
 
-### No Linux/macOS:
-O módulo `curses` já vem instalado.
+## 🚀 Como executar
 
-### No Windows:
-
-1. Instale o módulo compatível com `curses`:
+### 1. Subir apenas o servidor
 
 ```bash
-pip install windows-curses
+docker-compose up servidor --build
 ```
 
+### 2. Rodar o cliente (modo interativo)
 
-## Servidor
-
-Em um terminal
 ```bash
-    python servidor.py
+docker-compose run --rm cliente
 ```
+ou 
 
-## Cliente
-
-Em outro terminal, inicie o cliente
 ```bash
-    python cliente_refatorado.py
+docker-compose up --build --scale cliente=5
+```
+```bash
+docker exec -it g1-spd-joao-antonio-cliente-2 bash
 ```
 
-## Autenticacao
+- O cliente já abrirá pedindo **Usuário** e **Senha**.
+- Exemplo de usuário: `joao`, senha: `1234`.
 
-Ao abrir o cliente, será solicitado:
+---
 
-- Usuário: 
-    - joao
-    - peralta
-    - fabio
+## 🔐 Comandos dentro do cliente
 
-- Senha:
-    - 1234
+| Comando                | Descrição                                |
+|-------------------------|-----------------------------------------|
+| `item <nome>`           | Inicia leilão com o item especificado    |
+| `lance <valor>`         | Realiza um lance no leilão               |
+| `encerrar`              | Encerra o leilão atual                   |
+| `sair`                  | Sai do sistema de leilões                |
 
-Os usuários estão definidos no servidor (USUARIOS no servidor_leilao.py)
+---
 
-## Comandos
-    item <nome>     |	Inicia um leilão
-    ----------------------------------------------------
-    lance <valor>   |	Realiza um lance (valor inteiro)
-    ----------------------------------------------------
-    encerrar        |	Encerra o leilão atual. 
-                    |    registra no log
-                    |   anuncia o vencedor
-    ----------------------------------------------------
-    sair	        |   Sai da plataforma
+## 📂 Como copiar o histórico dos leilões
 
-O resultado do leilão é registrado automaticamente em historico_leiloes.txt.
+O servidor salva os registros no volume nomeado `historico_data`.
+
+Para copiar o histórico manualmente para sua máquina:
+
+```bash
+docker cp g1-spd-joao-antonio-servidor-1:/historico ./
+```
+
+- `g1-spd-joao-antonio-servidor-1` é o nome do container do servidor (veja com `docker ps`).
+- O histórico será salvo na pasta `./historico/`.
+
+---
+
+## 🛠️ Estrutura de Pastas
+
+```
+/
+├── servidor/              # Código do servidor
+├── cliente/               # Código do cliente
+├── historico/             # Pasta onde serão copiados os 
+|                            históricos
+├── docker-compose.yml     # Compose principal
+├── README.md              # Este arquivo
+```
+
+---
+## Inspiração
+
+- https://hub.docker.com/_/python
+- https://www.docker.com/blog/how-to-dockerize-your-python-applications/
+---
+
+## 🎯 Futuras Melhorias (opcionais)
+
+- Implementar SSL/TLS para segurança
+- Criar cliente Web via WebSocket
+- Timeout automático de leilões
+- Dashboard para histórico de leilões
+
+---

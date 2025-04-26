@@ -2,6 +2,7 @@ import socket
 import multiprocessing
 import datetime
 import logging
+import os
 
 MAX_CLIENTS = 10
 MAX_MSG_LENGTH = 200
@@ -12,10 +13,12 @@ USUARIOS = {
     "peralta": "1234",
     "fabio": "1234"
 }
+# Garante que o diretório exista (dentro do container será /historico)
+os.makedirs("/historico", exist_ok=True)
 
 # Configuração do logger para histórico
 logging.basicConfig(
-    filename="historico_leiloes.txt",
+    filename="/historico/historico_leiloes.txt",
     level=logging.INFO,
     format="%(asctime)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
