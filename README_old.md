@@ -1,5 +1,5 @@
 
-# Sistem de  Leilões distribuiods (Containerizado)
+# Sistem de  Leilões distribuiods
 Sistema distribuído de leilões:
 - em tempo real 
 - utilizando: **sockets TCP**, **threads**, **multiprocessamento**
