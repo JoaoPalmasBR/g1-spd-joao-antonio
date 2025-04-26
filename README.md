@@ -78,3 +78,8 @@ Os usuários estão definidos no servidor (USUARIOS no servidor_leilao.py)
     sair	        |   Sai da plataforma
 
 O resultado do leilão é registrado automaticamente em historico_leiloes.txt.
+
+
+docker-compose up servidor --build
+
+docker-compose run --rm cliente

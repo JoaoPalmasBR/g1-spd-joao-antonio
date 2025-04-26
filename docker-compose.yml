@@ -4,10 +4,19 @@ services:
         ports:
             - "12345:12345"
         volumes:
-            - ./historico:/historico
+            - historico:/historico
         networks:
             - rede_lances
-
+    cliente:
+        build: ./cliente
+        depends_on:
+            - servidor
+        volumes:
+            - historico:/historico
+        networks:
+            - rede_lances
+        stdin_open: true  # importante para terminal interativo
+        tty: true         # importante para terminal interativo
     # app2:
     #     build: ./app
     #     ports:

@@ -47,7 +47,8 @@ def chat_interface(stdscr, client_socket):
 
     client_socket.close()
 
-def start_client(server_host='172.29.28.32', server_port=12345):
+# def start_client(server_host='172.29.28.32', server_port=12345):
+def start_client(server_host='servidor', server_port=12345):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
     try:
